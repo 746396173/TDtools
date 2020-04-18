@@ -1,8 +1,8 @@
 package com.taosdata.tools.collections;
 
 import com.alibaba.fastjson.JSONObject;
-import com.taosdata.tools.dao.TDEngineDao;
 import com.taosdata.tools.bean.CarWorkBean;
+import com.taosdata.tools.dao.TDEngineDao;
 import com.taosdata.tools.kafka.producer.ProducerClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -132,7 +132,7 @@ public class TDEngineConsumer {
     }
 
     public static void main(String[] args) throws IOException {
-        String filePath = "/media/psf/Home/Taosdata/weichai-kafka/src/main/resources/test.txt";
+        String filePath = "/media/psf/Home/TDtools/weichai-kafka/src/main/resources/test.txt";
         BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
         List<JSONObject> list = new ArrayList<>();
 
@@ -144,4 +144,5 @@ public class TDEngineConsumer {
         TDEngineConsumer tdEngineConsumer = new TDEngineConsumer("localhost", 0, "root", "taosdata", "test");
         tdEngineConsumer.consume(list);
     }
+
 }

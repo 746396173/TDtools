@@ -67,7 +67,7 @@ public class TDEngineDao {
             sql = "create table if not exists " + METRICS_NAME + " (ts timestamp, flueGasTemp int, retarderTorque0F int, " +
                     "batteryVoltage float, engineOilPress int, coolWaterTemp int, airTemp int, superchargerPress int, " +
                     "manifoldTemp int, inAirPress int, inVoltageECM float, airPress float, engineOilTemp float) " +
-                    "tags(devid BIGINT)";
+                    "tags(devid BINARY(50))";
             stmt.executeUpdate(sql);
             System.out.printf("Successfully executed: %s\n", sql);
 
@@ -84,7 +84,7 @@ public class TDEngineDao {
     public int writeToDb(List<CarWorkBean> list) {
         int affectRows = 0;
 
-        String sql = String.format("insert into dev%s using " + METRICS_NAME + " tags(%s) values ", list.get(0).getTerminalID(), list.get(0).getTerminalID());
+        String sql = String.format("insert into dev%s using " + METRICS_NAME + " tags('%s') values ", list.get(0).getTerminalID(), list.get(0).getTerminalID());
         for (int i = 0; i < list.size(); i++) {
             CarWorkBean workBean = list.get(i);
             sql += String.format(" (%d,%d,%d,%f,%d,%d,%d,%d,%d,%d,%f,%f,%f)", workBean.getDataTime(), workBean.getFuelTemp(), workBean.getRetarderTorque0F(), workBean.getBatteryVoltage(), workBean.getEngineOilPress(), workBean.getCoolWaterTemp(), workBean.getAirTemp(), workBean.getSuperchargerPress(), workBean.getManifoldTemp(), workBean.getInAirPress(), workBean.getInVoltageECM(), workBean.getAirPress(), workBean.getEngineOilTemp());
