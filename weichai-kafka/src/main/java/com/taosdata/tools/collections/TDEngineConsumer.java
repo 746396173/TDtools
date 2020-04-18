@@ -52,6 +52,8 @@ public class TDEngineConsumer {
     private TDEngineDao tdEngineDao;
 
     public TDEngineConsumer() {
+        this.tdEngineDao = new TDEngineDao(host, port, user, password, dbName);
+        this.tdEngineDao.createDbAndSuperTable(false);
     }
 
     public TDEngineConsumer(String host, int port, String user, String password, String dbName) {
@@ -130,8 +132,6 @@ public class TDEngineConsumer {
     }
 
     public static void main(String[] args) throws IOException {
-
-
         String filePath = "/media/psf/Home/Taosdata/weichai-kafka/src/main/resources/test.txt";
         BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
         List<JSONObject> list = new ArrayList<>();
