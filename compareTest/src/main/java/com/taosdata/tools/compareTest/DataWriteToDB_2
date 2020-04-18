@@ -1,0 +1,297 @@
+package com.taosdata.generator;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class DataWriteToDB_2 {
+    private static final String TSDB_DRIVER = "com.taosdata.jdbc.TSDBDriver";
+    private static final String METRICS_NAME = "devices";
+    private static final String FILE_PREFIX = "testdata";
+
+    private String host;
+    private int port;
+    private String user;
+    private String password;
+    private String path;
+    private String dbName;
+    private int numOfFiles;
+    private int writeClients;
+    private int rowsPerRequest;
+    private ExecutorService executorService;
+
+    private static final Connection connection = null;
+
+    public DataWriteToDB_2(String host, int port, String user, String password, String path, String dbName, int numOfFiles, int writeClients, int rowsPerRequest) {
+        this.host = host;
+        this.port = port;
+        this.user = user;
+        this.password = password;
+        this.path = path;
+        this.dbName = dbName;
+        this.numOfFiles = numOfFiles;
+        this.writeClients = writeClients;
+        this.rowsPerRequest = rowsPerRequest;
+    }
+
+    static {
+        try {
+//            Class.forName(TSDB_DRIVER);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadFile(List<String> fileList) {
+        Iterator<String> iterator = fileList.iterator();
+        int rowNum = 0;
+
+        while (iterator.hasNext()) {
+            String sql = "insert into dev%s using devices tags(%s,'%s',%s) values ";
+            String updateSql = "";
+            String lastMachineid = "";
+
+            try {
+                String filePath = iterator.next();
+
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
+                String rowString;
+                while ((rowString = bufferedReader.readLine()) != null) {
+                    if (rowString.isEmpty() || "".equals(rowString)) {
+                        continue;
+                    }
+                    String[] params = rowString.split(" ");
+                    if (!lastMachineid.equals(params[0])) {
+                        if (rowNum > 0) {
+                            writeToDB(updateSql);
+                            updateSql = "";
+                            rowNum = 0;
+                        }
+                        updateSql += String.format(sql, params[0], params[0], params[1], params[2]);
+                        lastMachineid = params[0];
+                    }
+                    updateSql += String.format(" (%s,%s,%s)", params[3], params[4], params[5]);
+                    rowNum++;
+                    if (rowNum >= rowsPerRequest) {
+                        writeToDB(updateSql);
+                        lastMachineid = "";
+                        updateSql = "";
+                        rowNum = 0;
+                    }
+                }
+                if (rowNum > 0) {
+                    writeToDB(updateSql);
+                    rowNum = 0;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(4);
+            }
+
+        }
+    }
+
+    private void writeToDB(String sql) {
+        writeToTDEngineDB(sql);
+
+//        writeToInfluxDB(sql);
+    }
+
+    private void writeToTDEngineDB(String sql) {
+        System.out.println(sql);
+        String jdbcUrl = "jdbc:TAOS://127.0.0.1:6020/?user=root&password=taosdata";
+
+        try (Connection conn = DriverManager.getConnection(jdbcUrl); Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("use " + dbName);
+            int affectRows = stmt.executeUpdate(sql);
+            System.out.println(affectRows);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.exit(4);
+        }
+    }
+
+    private void createDB(String dbName) {
+        String jdbcUrl = "jdbc:TAOS://127.0.0.1:6020/?user=root&password=taosdata";
+        String sql = "";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl);
+             Statement stmt = conn.createStatement()) {
+
+            sql = "create database if not exists " + dbName;
+            stmt.executeUpdate(sql);
+            System.out.printf("Successfully executed: %s\n", sql);
+
+            sql = "use " + dbName;
+            stmt.executeUpdate(sql);
+            System.out.printf("Successfully executed: %s\n", sql);
+
+            sql = "create table if not exists " + METRICS_NAME + " (ts timestamp, temperature int, humidity float) " +
+                    "tags(devid int, devname binary(16), devgroup int)";
+            stmt.executeUpdate(sql);
+            System.out.printf("Successfully executed: %s\n", sql);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.printf("Failed to execute SQL: %s\n", sql);
+            System.exit(4);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(4);
+        }
+        System.out.println("Successfully created databases and tables");
+
+    }
+
+    public void writeData() throws Exception {
+        CountDownLatch countDownLatch = new CountDownLatch(writeClients);
+        executorService = Executors.newFixedThreadPool(writeClients);
+        for (int i = 0; i < writeClients; i++) {
+            final int threadId = i;
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    Thread.currentThread().setName(String.valueOf(threadId));
+
+                    int a = numOfFiles / writeClients;
+                    int b = numOfFiles % writeClients;
+                    List<String> fileList = new ArrayList<>();
+                    for (int m = 0; m < a; m++) {
+                        String fileName = path + "/" + FILE_PREFIX + (writeClients * m + threadId) + ".csv";
+                        fileList.add(fileName);
+                    }
+                    if (b > 0 && b > threadId) {
+                        fileList.add(path + "/" + FILE_PREFIX + (writeClients * a + threadId) + ".csv");
+                    }
+                    loadFile(fileList);
+
+                    countDownLatch.countDown();
+                    return;
+                }
+            });
+        }
+        countDownLatch.await();
+        executorService.shutdown();
+    }
+
+    static class StringUtil {
+        public static boolean isEmpty(CharSequence string) {
+            return (string == null) || (string.length() == 0);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        String host = "127.0.0.1";
+        int port = 6020;
+        String user = "root";
+        String password = "taosdata";
+        String path = "";
+        String dbName = "test";
+        int numOfFiles = 0;
+        int writeClients = Runtime.getRuntime().availableProcessors();
+        int rowsPerRequest = 0;
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("-h")) {
+                if (i < args.length - 1) {
+                    host = args[++i];
+                } else {
+                    System.err.println("'-h' requires a parameter, default is 127.0.0.1");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-port")) {
+                if (i < args.length - 1) {
+                    port = Integer.parseInt(args[++i]);
+                } else {
+                    System.err.println("'-port' requires a parameter, default is 6020");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-u")) {
+                if (i < args.length - 1) {
+                    user = args[++i];
+                } else {
+                    System.err.println("'-u' requires a parameter, default is root");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-p")) {
+                if (i < args.length - 1) {
+                    password = args[++i];
+                } else {
+                    System.err.println("'-p' requires a parameter, default is taosdata");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-path")) {
+                if (i < args.length - 1) {
+                    path = args[++i];
+                } else {
+                    System.err.println("'-path' requires a parameter");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-dbname")) {
+                if (i < args.length - 1) {
+                    dbName = args[++i];
+                } else {
+                    System.err.println("'-dbname' requires a parameter, default is test");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-numOfFiles")) {
+                if (i < args.length - 1) {
+                    numOfFiles = Integer.parseInt(args[++i]);
+                } else {
+                    System.err.println("'-numOfFiles' requires a parameter");
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-writeClients")) {
+                if (i < args.length - 1) {
+                    writeClients = Integer.parseInt(args[++i]);
+                } else {
+                    System.err.println("'-writeClients' requires a parameter, default is " + writeClients);
+                    return;
+                }
+            } else if (args[i].equalsIgnoreCase("-rowsPerRequest")) {
+                if (i < args.length - 1) {
+                    rowsPerRequest = Integer.parseInt(args[++i]);
+                } else {
+                    System.err.println("'-rowsPerRequest' requires a parameter");
+                    return;
+                }
+            }
+        }
+        if (StringUtil.isEmpty(path)) {
+            System.err.println("'-path' is required");
+            return;
+        }
+        if (0 >= numOfFiles) {
+            System.err.println("'-numOfFiles' is required");
+            return;
+        }
+        if (0 >= writeClients) {
+            System.err.println("'-writeClients' is required");
+            return;
+        }
+        if (0 >= rowsPerRequest) {
+            System.err.println("'-rowsPerRequest' is required");
+            return;
+        }
+        System.out.println("parameters");
+        System.out.printf("----host:%s\n", host);
+        System.out.printf("----port:%d\n", port);
+        System.out.printf("----user:%s\n", user);
+        System.out.printf("----path:%s\n", path);
+        System.out.printf("----dbName:%s\n", dbName);
+        System.out.printf("----numOfFiles:%d\n", numOfFiles);
+        System.out.printf("----writeClients:%d\n", writeClients);
+        System.out.printf("----rowsPerRequest:%d\n", rowsPerRequest);
+        DataWriteToDB_2 dataWriteToDB2 = new DataWriteToDB_2(host, port, user, password, path, dbName, numOfFiles, writeClients, rowsPerRequest);
+        dataWriteToDB2.createDB(dbName);
+        dataWriteToDB2.writeData();
+    }
+}
