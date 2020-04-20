@@ -1,5 +1,7 @@
 package com.taosdata.tools.bean;
 
+import com.taosdata.tools.WeichaiType;
+
 import java.util.Map;
 
 public class CarBean {
@@ -8,7 +10,34 @@ public class CarBean {
     // 位置信息
     private Map<String, Object> locationInfo;
     // 工况信息
-    private CarWorkBean work;
+    @WeichaiType("WorkBean")
+    private WorkBean work;
+//    @WeichaiType("ConsumptionBean")
+//    private CarWorkBean consumption;
+//    @WeichaiType("DriveBean")
+//    private CarWorkBean drive;
+//    @WeichaiType("LocationInfoBean")
+//    private CarWorkBean locationInfo;
+//    @WeichaiType("MixerBean")
+//    private CarWorkBean mixer;
+//    @WeichaiType("PowerBean")
+//    private CarWorkBean power;
+//    @WeichaiType("SpeedBean")
+//    private CarWorkBean speed;
+//    @WeichaiType("State1Bean")
+//    private CarWorkBean state1;
+//    @WeichaiType("State2Bean")
+//    private CarWorkBean state2;
+//    @WeichaiType("State3Bean")
+//    private CarWorkBean state3;
+//    @WeichaiType("SwitchBean")
+//    private CarWorkBean switch;
+//    @WeichaiType("TotalBean")
+//    private CarWorkBean total;
+//    @WeichaiType("WorkVarBean")
+//    private CarWorkBean workVar;
+
+
     // 状态信息1
     private Map<String, Object> state1;
     // 状态信息2
@@ -47,11 +76,11 @@ public class CarBean {
         this.locationInfo = locationInfo;
     }
 
-    public CarWorkBean getWork() {
+    public WorkBean getWork() {
         return work;
     }
 
-    public void setWork(CarWorkBean work) {
+    public void setWork(WorkBean work) {
         this.work = work;
     }
 
