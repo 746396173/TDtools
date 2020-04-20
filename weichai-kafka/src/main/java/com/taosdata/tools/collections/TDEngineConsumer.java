@@ -23,7 +23,7 @@ public class TDEngineConsumer {
 
     private static AtomicLong msgNum = new AtomicLong(0);
     private static AtomicLong insertRows = new AtomicLong(0);
-    private static AtomicLong insertSuccessRows = new AtomicLong(0);
+//    private static AtomicLong insertSuccessRows = new AtomicLong(0);
     private static AtomicLong totalTime = new AtomicLong(0);
 
     static {
@@ -32,8 +32,8 @@ public class TDEngineConsumer {
         service.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                System.out.println(String.format("msgNum: %d, insertRows: %d, insertSuccessRows: %d, totalTime: %d, avgTime: %f", msgNum.get(), insertRows.get(), insertSuccessRows.get(), totalTime.get(), ((double) (totalTime.get() / (double) insertSuccessRows.get()))));
-                log.info(String.format("msgNum: %d, insertRows: %d, insertSuccessRows: %d, totalTime: %d, avgTime: %f", msgNum.get(), insertRows.get(), insertSuccessRows.get(), totalTime.get(), (((double) totalTime.get() / (double) insertSuccessRows.get()))));
+                System.out.println(String.format("msgNum: %d, insertRows: %d, insertSuccessRows: %d, totalTime: %d, avgTime: %f", msgNum.get(), insertRows.get(), totalTime.get()));
+                log.info(String.format("msgNum: %d, insertRows: %d, insertSuccessRows: %d, totalTime: %d, avgTime: %f", msgNum.get(), insertRows.get(), totalTime.get()));
             }
         }, delay, interval, TimeUnit.MILLISECONDS);
     }
@@ -50,6 +50,8 @@ public class TDEngineConsumer {
     private String dbName = "test";
 
     private TDEngineDao tdEngineDao;
+
+    private List<CarWorkBean> listWork = new ArrayList<>();
 
     public TDEngineConsumer() {
         this.tdEngineDao = new TDEngineDao(host, port, user, password, dbName);
@@ -86,13 +88,12 @@ public class TDEngineConsumer {
         this.dbName = dbName;
     }
 
-    public int consume(List<JSONObject> list) {
+    public void consume(List<JSONObject> list) {
         if (list.size() == 0) {
             log.error("list's size is 0");
-            return 0;
+            return;
         }
         Iterator<JSONObject> iterator = list.iterator();
-        List<CarWorkBean> listWork = new ArrayList<>();
         while (iterator.hasNext()) {
             JSONObject jsonObject = iterator.next();
             if (!jsonObject.containsKey("terminalID") || !jsonObject.containsKey("dataTime") || !jsonObject.containsKey("work")) {
@@ -100,7 +101,7 @@ public class TDEngineConsumer {
                 log.error(jsonObject.toJSONString() + "is valid or don't contain 'work'.");
             } else {
                 JSONObject workObject = jsonObject.getJSONObject("work");
-                long dataTime = (long) jsonObject.getLong("dataTime");
+                long dataTime = jsonObject.getLong("dataTime");
                 String terminalId = jsonObject.getString("terminalID");
                 workObject.put("dataTime", dataTime);
                 workObject.put("terminalID", terminalId);
@@ -109,22 +110,24 @@ public class TDEngineConsumer {
                 listWork.add(workBean);
             }
         }
-        msgNum.getAndAdd(listWork.size());
+        if (listWork.size() >= 200) {
+            msgNum.addAndGet(listWork.size());
 
-        Collections.sort(listWork, new Comparator<CarWorkBean>() {
-            @Override
-            public int compare(CarWorkBean workBean, CarWorkBean t1) {
-                return (int) (workBean.getDataTime() - t1.getDataTime());
-            }
-        });
+            Collections.sort(listWork, new Comparator<CarWorkBean>() {
+                @Override
+                public int compare(CarWorkBean workBean, CarWorkBean t1) {
+                    return (int) (workBean.getDataTime() - t1.getDataTime());
+                }
+            });
 
-        insertRows.getAndAdd(list.size());
-        long s = System.currentTimeMillis();
-        int affectRows = writeToDb(listWork);
-        long t = System.currentTimeMillis();
-        insertSuccessRows.getAndAdd(affectRows);
-        totalTime.getAndAdd(t - s);
-        return affectRows;
+            insertRows.getAndAdd(list.size());
+            long s = System.currentTimeMillis();
+            int affectRows = writeToDb(listWork);
+            long t = System.currentTimeMillis();
+//            insertSuccessRows.getAndAdd(affectRows);
+            listWork.clear();
+            totalTime.getAndAdd(t - s);
+        }
     }
 
     private int writeToDb(List<CarWorkBean> list) {
