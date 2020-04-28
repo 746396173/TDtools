@@ -1,9 +1,9 @@
 package com.taosdata.tools.collections;
 
 import com.alibaba.fastjson.JSONObject;
-import com.taosdata.tools.bean.WeichaiBean;
 import com.taosdata.tools.WeichaiType;
 import com.taosdata.tools.bean.CarBean;
+import com.taosdata.tools.bean.WeichaiBean;
 import com.taosdata.tools.dao.TDEngineDao;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +27,7 @@ public class TDEngineConsumer {
 
     private static AtomicLong msgNum = new AtomicLong(0);
     private static AtomicLong insertRows = new AtomicLong(0);
-//    private static AtomicLong insertSuccessRows = new AtomicLong(0);
+    //    private static AtomicLong insertSuccessRows = new AtomicLong(0);
     private static AtomicLong totalTime = new AtomicLong(0);
     HashMap<String, List<WeichaiBean>> map = new HashMap<>();
 
@@ -38,14 +38,14 @@ public class TDEngineConsumer {
             @Override
             public void run() {
                 //System.out.println("OK");
-                System.out.println(String.format("msgNum: %d, insertRows: %d, totalTime: %d", msgNum.get(), insertRows.get(),totalTime.get()));
+                System.out.println(String.format("msgNum: %d, insertRows: %d, totalTime: %d", msgNum.get(), insertRows.get(), totalTime.get()));
                 log.info(String.format("msgNum: %d, insertRows: %d, totalTime: %d", msgNum.get(), insertRows.get(), totalTime.get()));
             }
         }, delay, interval, TimeUnit.MILLISECONDS);
     }
 
     // db host
-    private String host = "10.3.52.125";
+    private String host = "localhost";
     // db port
     private int port = 0;
     // db user
@@ -102,9 +102,9 @@ public class TDEngineConsumer {
         Field[] fields = CarBean.class.getDeclaredFields();
         while (iterator.hasNext()) {
             JSONObject jsonObject = iterator.next();
-            if (!jsonObject.containsKey("terminalID") || !jsonObject.containsKey("dataTime") || !jsonObject.containsKey("work")) {
+            if (!jsonObject.containsKey("terminalID") || !jsonObject.containsKey("dataTime")) {
                 iterator.remove();
-                //log.error(jsonObject.toJSONString() + "is valid or don't contain 'work'.");
+                log.error(jsonObject.toJSONString() + "is not valid.");
             } else {
                 long dataTime = jsonObject.getLong("dataTime");
                 String terminalId = jsonObject.getString("terminalID");
@@ -112,9 +112,9 @@ public class TDEngineConsumer {
                 for (Field field : fields) {
                     if (field.getAnnotation(WeichaiType.class) != null) {
                         String keyName = field.getAnnotation(WeichaiType.class).value();
-                        //System.out.println(field.getName());
                         String filedName = field.getName();
                         Class cls = field.getType();
+
                         JSONObject jsonObject1 = jsonObject.getJSONObject(filedName);
                         WeichaiBean obj = (WeichaiBean) JSONObject.parseObject(jsonObject1.toJSONString(), cls);
                         try {
@@ -122,6 +122,31 @@ public class TDEngineConsumer {
                             Method setDataTime = cls.getMethod("setDataTime", long.class);
                             setTerminalID.invoke(obj, terminalId);
                             setDataTime.invoke(obj, dataTime);
+                            if ("locationInfo".equals(filedName)) {
+                                JSONObject locationInfo = jsonObject1.getJSONObject("address");
+                                if (null == locationInfo) {
+                                    continue;
+                                }
+                                Method setDistrictCode = cls.getMethod("setDistrictCode", String.class);
+                                setDistrictCode.invoke(obj, locationInfo.getString("districtCode"));
+//                                Method setDirection = cls.getMethod("setDirection", String.class);
+//                                Method setLonOffset = cls.getMethod("setLonOffset", String.class);
+                                Method setProvince = cls.getMethod("setProvince", String.class);
+                                setProvince.invoke(obj, locationInfo.getString("province"));
+
+                                Method setCity = cls.getMethod("setCity", String.class);
+                                setCity.invoke(obj, locationInfo.getString("city"));
+
+                                Method setCityCode = cls.getMethod("setCityCode", String.class);
+                                setCityCode.invoke(obj, locationInfo.getString("cityCode"));
+
+                                Method setProvinceCode = cls.getMethod("setProvinceCode", String.class);
+                                setProvinceCode.invoke(obj, locationInfo.getString("provinceCode"));
+
+                                Method setDistrict = cls.getMethod("setDistrict", String.class);
+                                setDistrict.invoke(obj, locationInfo.getString("district"));
+
+                            }
                         } catch (NoSuchMethodException e) {
                             e.printStackTrace();
                         } catch (IllegalAccessException e) {
@@ -150,9 +175,9 @@ public class TDEngineConsumer {
             }
         }
 
-        for (Map.Entry<String, List<WeichaiBean>> entry: map.entrySet()) {
+        for (Map.Entry<String, List<WeichaiBean>> entry : map.entrySet()) {
             String beanName = entry.getKey();
-            if (entry.getValue().size() >= 100) {
+            if (entry.getValue().size() >= 50) {
                 List<WeichaiBean> listWork = entry.getValue();
 
                 msgNum.getAndAdd(listWork.size());
@@ -177,7 +202,7 @@ public class TDEngineConsumer {
     private int writeToDb(String beanName, List<WeichaiBean> list) {
         try {
             return tdEngineDao.writeToDb(beanName, list);
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             System.exit(4);
         }
@@ -185,18 +210,19 @@ public class TDEngineConsumer {
     }
 
     public static void main(String[] args) throws IOException {
-
-
-        String filePath = "/media/psf/Home/Taosdata/weichai-kafka/src/main/resources/test.txt";
+        String filePath = "/media/psf/Home/Taosdata/TDtools/weichai-kafka/src/main/resources/test.txt";
         BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath));
         List<JSONObject> list = new ArrayList<>();
 
         String line = "";
-        while (null != (line = bufferedReader.readLine())) {
+        int i = 0;
+        while (null != (line = bufferedReader.readLine()) && i < 100) {
+            i++;
             JSONObject jsonObject = JSONObject.parseObject(line);
             list.add(jsonObject);
         }
         TDEngineConsumer tdEngineConsumer = new TDEngineConsumer("localhost", 0, "root", "taosdata", "test");
-        //tdEngineConsumer.consume(list);
+        tdEngineConsumer.consume(list);
+        bufferedReader.close();
     }
 }

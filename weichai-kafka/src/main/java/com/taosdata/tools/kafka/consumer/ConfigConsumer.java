@@ -1,6 +1,7 @@
 package com.taosdata.tools.kafka.consumer;
 
 import com.alibaba.fastjson.JSON;
+import com.taosdata.tools.bean.WorkBean;
 import com.taosdata.tools.dao.TDEngineDao;
 import com.taosdata.tools.bean.CarBean;
 import com.taosdata.tools.bean.CarWorkBean;
@@ -39,7 +40,7 @@ public class ConfigConsumer implements Runnable {
     private void doBatchInsert() {
         int updateLimit = 1000;
 
-        Map<String, List<CarWorkBean>> devMap = new HashMap<>();
+        Map<String, List<WorkBean>> devMap = new HashMap<>();
 
         int i = 0;
         int retry = 0;
@@ -50,8 +51,8 @@ public class ConfigConsumer implements Runnable {
                 if (retry >= 1000) {
                     if (devMap.size() > 0) {
                         insertSqlRows += records.count();
-                        for (Map.Entry<String, List<CarWorkBean>> entry : devMap.entrySet()) {
-                            List<CarWorkBean> list = entry.getValue();
+                        for (Map.Entry<String, List<WorkBean>> entry : devMap.entrySet()) {
+                            List<WorkBean> list = entry.getValue();
 
                             int successRows = writeToDb(list);
                             this.successRows += successRows;
@@ -80,15 +81,15 @@ public class ConfigConsumer implements Runnable {
                         devMap.get(carBean.getTerminalID()).add(carBean.getWork());
                         i++;
                     } else {
-                        devMap.put(carBean.getTerminalID(), new ArrayList<CarWorkBean>() {{
+                        devMap.put(carBean.getTerminalID(), new ArrayList<WorkBean>() {{
                             add(carBean.getWork());
                         }});
                         i++;
                     }
                     if (i >= updateLimit) {
                         insertSqlRows += i;
-                        for (Map.Entry<String, List<CarWorkBean>> entry : devMap.entrySet()) {
-                            List<CarWorkBean> list = entry.getValue();
+                        for (Map.Entry<String, List<WorkBean>> entry : devMap.entrySet()) {
+                            List<WorkBean> list = entry.getValue();
 
                             int successRows = writeToDb(list);
                             this.successRows += successRows;
@@ -103,14 +104,15 @@ public class ConfigConsumer implements Runnable {
         }
     }
 
-    private int writeToDb(List<CarWorkBean> list) {
-        Collections.sort(list, new Comparator<CarWorkBean>() {
+    private int writeToDb(List<WorkBean> list) {
+        Collections.sort(list, new Comparator<WorkBean>() {
             @Override
-            public int compare(CarWorkBean carBean, CarWorkBean t1) {
-                return (int) (carBean.getDataTime() - t1.getDataTime());
+            public int compare(WorkBean workBean, WorkBean t1) {
+                return (int) (workBean.getDataTime() - t1.getDataTime());
             }
         });
-        return tdEngineDao.writeToDb(list);
+        return 0;
+//        return tdEngineDao.writeToDb("--", list);
     }
 
     public StatisticParam getStatisticParam() {

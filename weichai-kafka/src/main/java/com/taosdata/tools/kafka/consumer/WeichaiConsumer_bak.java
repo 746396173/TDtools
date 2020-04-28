@@ -107,11 +107,11 @@ public class WeichaiConsumer_bak {
                 carBean.getWork().setTerminalID(carBean.getTerminalID());
 
                 if (null != devMap.get(carBean.getTerminalID())) {
-                    devMap.get(carBean.getTerminalID()).add(carBean.getWork());
+                    //devMap.get(carBean.getTerminalID()).add(carBean.getWork());
                     i++;
                 } else {
                     devMap.put(carBean.getTerminalID(), new ArrayList<CarWorkBean>() {{
-                        add(carBean.getWork());
+                        //add(carBean.getWork());
                     }});
                     i++;
                 }

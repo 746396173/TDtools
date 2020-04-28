@@ -8,7 +8,8 @@ public class CarBean {
     private String terminalID;
     private long dataTime;
     // 位置信息
-    private Map<String, Object> locationInfo;
+    @WeichaiType("LocationInfoBean")
+    private LocationInfoBean locationInfo;
     // 工况信息
     @WeichaiType("WorkBean")
     private WorkBean work;
@@ -68,12 +69,12 @@ public class CarBean {
         this.dataTime = dataTime;
     }
 
-    public Map<String, Object> getLocationInfo() {
-        return locationInfo;
+    public void setLocationInfo(LocationInfoBean locationInfo) {
+        this.locationInfo = locationInfo;
     }
 
-    public void setLocationInfo(Map<String, Object> locationInfo) {
-        this.locationInfo = locationInfo;
+    public LocationInfoBean getLocationInfo() {
+        return locationInfo;
     }
 
     public WorkBean getWork() {

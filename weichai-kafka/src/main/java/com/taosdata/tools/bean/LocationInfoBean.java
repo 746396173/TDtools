@@ -1,13 +1,14 @@
 package com.taosdata.tools.bean;
 
-public class LocationInfoBean {
+import com.taosdata.tools.WeichaiTypeName;
+
+@WeichaiTypeName("location")
+public class LocationInfoBean extends WeichaiBean {
     //location
-    private long dataTime;
-    private String terminalID;
     private double speed;
     private String csq;
     private String geohash;
-    private String address;
+//    private String address;
     private String districtCode;
     private String direction;
     private String lonOffset;
@@ -23,22 +24,6 @@ public class LocationInfoBean {
     private String city;
     private String district;
     private String provinceCode;
-
-    public long getDataTime() {
-        return dataTime;
-    }
-
-    public void setDataTime(long dataTime) {
-        this.dataTime = dataTime;
-    }
-
-    public String getTerminalID() {
-        return terminalID;
-    }
-
-    public void setTerminalID(String terminalID) {
-        this.terminalID = terminalID;
-    }
 
     public double getSpeed() {
         return speed;
@@ -64,13 +49,13 @@ public class LocationInfoBean {
         this.geohash = geohash;
     }
 
-    public String getAddress() {
-        return address;
-    }
+//    public String getAddress() {
+//        return address;
+//    }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
+//    public void setAddress(String address) {
+//        this.address = address;
+//    }
 
     public String getDistrictCode() {
         return districtCode;

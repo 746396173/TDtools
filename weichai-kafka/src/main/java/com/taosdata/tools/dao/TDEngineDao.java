@@ -1,5 +1,6 @@
 package com.taosdata.tools.dao;
 
+import com.taosdata.tools.bean.LocationInfoBean;
 import com.taosdata.tools.bean.WeichaiBean;
 import com.taosdata.tools.WeichaiTypeName;
 import com.taosdata.tools.bean.WorkBean;
@@ -29,7 +30,7 @@ public class TDEngineDao {
 
     static {
         try {
-            System.load("C:\\TDengine\\driver\\taos.dll");
+//            System.load("C:\\TDengine\\driver\\taos.dll");
             Class.forName(TSDB_DRIVER);
         } catch (Exception e) {
             e.printStackTrace();
@@ -79,6 +80,7 @@ public class TDEngineDao {
             // .forPackages("com.taosdata.tools.bean").addScanners(new FieldAnnotationsScanner()));
             Set<Class<? extends WeichaiBean>> subTypes = new HashSet<>();
             subTypes.add(WorkBean.class);
+            subTypes.add(LocationInfoBean.class);
 
             for (Class cls : subTypes) {
                 if (null == cls.getAnnotation(WeichaiTypeName.class)) {
@@ -90,7 +92,6 @@ public class TDEngineDao {
                 Field[] filelds = cls.getDeclaredFields();
                 for (Field field : filelds) {
                     String typeName = field.getType().getName();
-                    System.out.println(typeName);
                     if ("int".equals(typeName)) {
                         tableSql.append(field.getName()).append(" ").append("int, ");
                     }
@@ -105,9 +106,9 @@ public class TDEngineDao {
                 if (filelds.length > 0) {
                     sql = tableSql.toString().substring(0, tableSql.length() - 2);
                 }
-                System.out.println(sql);
                 sql += ") tags(devid BINARY(50))";
-                //stmt.executeUpdate(sql);
+
+                stmt.executeUpdate(sql);
                 System.out.printf("Successfully executed: %s\n", sql);
                 //System.out.printf("Successfully executed: %s\n", sql);
             }
@@ -143,7 +144,9 @@ public class TDEngineDao {
 
             for (int i = 0; i < list.size(); i++) {
                 WeichaiBean weichaiBean = list.get(i);
-                sql += "dev_" + tableName + "_" + weichaiBean.getTerminalID() + " using " + tableName + " tags('" + weichaiBean.getTerminalID() + "') values (";
+                sql += tableName + "_" + weichaiBean.getTerminalID() + " using " + tableName + " tags('" + weichaiBean.getTerminalID() + "') values (";
+                sql += weichaiBean.getDataTime() + ", ";
+
                 Field[] filelds = cls.getDeclaredFields();
                 String sqlParam = "";
                 for (Field field : filelds) {
@@ -162,7 +165,7 @@ public class TDEngineDao {
                     Method method = cls.getMethod( methodName, null);
                     if ("java.lang.String".equals(typeName)) {
                         String s = (String) method.invoke(weichaiBean);
-                        sqlParam += s + ", ";
+                        sqlParam += "'" + s + "', ";
                     } else if ("int".equals(typeName)) {
                         int s = (int) method.invoke(weichaiBean);
                         sqlParam += s + ", ";
