@@ -1,6 +1,4 @@
-package com.taosdata.tools.bean;
-
-import com.taosdata.tools.WeichaiType;
+package com.taosdata.tools_bak.bean;
 
 import java.util.Map;
 
@@ -8,37 +6,9 @@ public class CarBean {
     private String terminalID;
     private long dataTime;
     // 位置信息
-    @WeichaiType("LocationInfoBean")
-    private LocationInfoBean locationInfo;
+    private Map<String, Object> locationInfo;
     // 工况信息
-    @WeichaiType("WorkBean")
-    private WorkBean work;
-//    @WeichaiType("ConsumptionBean")
-//    private CarWorkBean consumption;
-//    @WeichaiType("DriveBean")
-//    private CarWorkBean drive;
-//    @WeichaiType("LocationInfoBean")
-//    private CarWorkBean locationInfo;
-//    @WeichaiType("MixerBean")
-//    private CarWorkBean mixer;
-//    @WeichaiType("PowerBean")
-//    private CarWorkBean power;
-//    @WeichaiType("SpeedBean")
-//    private CarWorkBean speed;
-//    @WeichaiType("State1Bean")
-//    private CarWorkBean state1;
-//    @WeichaiType("State2Bean")
-//    private CarWorkBean state2;
-//    @WeichaiType("State3Bean")
-//    private CarWorkBean state3;
-//    @WeichaiType("SwitchBean")
-//    private CarWorkBean switch;
-//    @WeichaiType("TotalBean")
-//    private CarWorkBean total;
-//    @WeichaiType("WorkVarBean")
-//    private CarWorkBean workVar;
-
-
+    private CarWorkBean work;
     // 状态信息1
     private Map<String, Object> state1;
     // 状态信息2
@@ -69,19 +39,19 @@ public class CarBean {
         this.dataTime = dataTime;
     }
 
-    public LocationInfoBean getLocationInfo() {
+    public Map<String, Object> getLocationInfo() {
         return locationInfo;
     }
 
-    public void setLocationInfo(LocationInfoBean locationInfo) {
+    public void setLocationInfo(Map<String, Object> locationInfo) {
         this.locationInfo = locationInfo;
     }
 
-    public WorkBean getWork() {
+    public CarWorkBean getWork() {
         return work;
     }
 
-    public void setWork(WorkBean work) {
+    public void setWork(CarWorkBean work) {
         this.work = work;
     }
 

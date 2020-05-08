@@ -1,9 +1,9 @@
-package com.taosdata.tools.kafka.consumer;
+package com.taosdata.tools_bak.kafka.consumer;
 
 import com.alibaba.fastjson.JSON;
-import com.taosdata.tools.dao.TDEngineDao;
-import com.taosdata.tools.bean.CarBean;
-import com.taosdata.tools.bean.CarWorkBean;
+import com.taosdata.tools_bak.dao.TDEngineDao;
+import com.taosdata.tools_bak.bean.CarBean;
+import com.taosdata.tools_bak.bean.CarWorkBean;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;

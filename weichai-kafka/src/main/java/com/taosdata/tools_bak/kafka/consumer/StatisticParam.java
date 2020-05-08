@@ -1,4 +1,4 @@
-package com.taosdata.tools.kafka.consumer;
+package com.taosdata.tools_bak.kafka.consumer;
 
 public class StatisticParam {
     private long msgNum;

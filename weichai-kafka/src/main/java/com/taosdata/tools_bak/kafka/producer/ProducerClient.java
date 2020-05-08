@@ -1,4 +1,4 @@
-package com.taosdata.tools.kafka.producer;
+package com.taosdata.tools_bak.kafka.producer;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;

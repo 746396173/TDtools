@@ -1,4 +1,4 @@
-package com.taosdata.tools.collections;
+package com.taosdata.tools_bak.collections;
 
 import com.alibaba.fastjson.JSONObject;
 import org.junit.jupiter.api.Test;
@@ -8,8 +8,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class TDEngineConsumerTest {
 
